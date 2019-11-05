@@ -7,10 +7,10 @@ precision highp float;
 // Task 4: Add an input variable for colors from the vertex shader, and set
 //         the output color to be the incoming interpolated color.
 ///////////////////////////////////////////////////////////////////////////////
-
+in vec3 outColor;
 layout(location = 0) out vec4 fragmentColor;
 
 void main()
 {
-	fragmentColor = vec4(1.0, 1.0, 1.0, 1.0);
+	fragmentColor.rgb = outColor;
 }
