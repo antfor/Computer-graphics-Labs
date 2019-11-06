@@ -29,7 +29,9 @@ GLuint shaderProgram;
 
 // The vertexArrayObject here will hold the pointers to
 // the vertex data (in positionBuffer) and color data per vertex (in colorBuffer)
-GLuint positionBuffer, colorBuffer, indexBuffer, vertexArrayObject, textureBuffer, texture;
+GLuint positionBuffer, colorBuffer, indexBuffer, textureBuffer, texture;
+GLuint explosionPositionBuffer, explosionIndexBuffer, explosionTextureBuffer, explosionTexture;
+GLuint vertexArrayObject[2];
 
 
 
@@ -39,9 +41,9 @@ void initGL()
 	// Create the vertex array object
 	///////////////////////////////////////////////////////////////////////////
 	// Create a handle for the vertex array object
-	glGenVertexArrays(1, &vertexArrayObject);
+	glGenVertexArrays(2, vertexArrayObject);
 	// Set it as current, i.e., related calls will affect this object
-	glBindVertexArray(vertexArrayObject);
+	glBindVertexArray(vertexArrayObject[0]);
 
 	///////////////////////////////////////////////////////////////////////////
 	// Create the positions buffer object
@@ -134,7 +136,69 @@ void initGL()
 
 	glGenerateMipmap(GL_TEXTURE_2D);
 
+	//**********************************************
+	//explosion
+	//**********************************************
+	// Set it as current, i.e., related calls will affect this object
+	glBindVertexArray(vertexArrayObject[1]);
 
+	// Create the positions buffer object
+	const float explosionPositions[] = {
+		// X      Y       Z
+		-3.0f, -3.0f,  -10.0f,  // v0
+		-3.0f, 3.0f, -10.0f, // v1
+		3.0f,  3.0f, -10.0f, // v2
+		3.0f,  -3.0f,  -10.0f   // v3
+	};
+	// Create a handle for the vertex position buffer
+	glGenBuffers(1, &explosionPositionBuffer);
+	// Set the newly created buffer as the current one
+	glBindBuffer(GL_ARRAY_BUFFER, explosionPositionBuffer);
+	// Send the vetex position data to the current buffer
+	glBufferData(GL_ARRAY_BUFFER, sizeof(explosionPositions), explosionPositions, GL_STATIC_DRAW);
+	glVertexAttribPointer(0, 3, GL_FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
+	// Enable the attribute
+	glEnableVertexAttribArray(0);
+
+	float explosionTexcoords[] = {
+	0.0f, 0.0f, // (u,v) for v0 
+	0.0f, 1.0f, // (u,v) for v1
+	1.0f, 1.0f, // (u,v) for v2
+	1.0f, 0.0f // (u,v) for v3
+	};
+
+	glGenBuffers(1, &explosionTextureBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, explosionTextureBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(explosionTexcoords), explosionTexcoords, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(2, 2, GL_FLOAT, false/*normalized*/, 0/*stride*/, 0/*offset*/);
+
+	// Enable the attribute
+	glEnableVertexAttribArray(2);
+
+	glGenBuffers(1, &explosionIndexBuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, explosionIndexBuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+	//Load explosion Texture
+	image = stbi_load("../scenes/explosion.png", &w, &h, &comp, STBI_rgb_alpha);
+
+	glGenTextures(1, &explosionTexture);
+
+	glBindTexture(GL_TEXTURE_2D, explosionTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	free(image);
+
+
+	// tell OpenGL what to do with texture coordinates outside the (0,1)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+
+
+	// Sets the type of filtering to be used on magnifying and
+	// minifying the active texture. These are the nicest available options.
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
 void display(void)
@@ -172,12 +236,20 @@ void display(void)
 	glUniform3f(loc, camera_pan, 0, 0);
 
 	// >>> @task 3.1
-	glActiveTexture(GL_TEXTURE0);
+
 	glBindTexture(GL_TEXTURE_2D, texture);
 
-	glBindVertexArray(vertexArrayObject);
+	glBindVertexArray(vertexArrayObject[0]);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
+
+	glBindTexture(GL_TEXTURE_2D, explosionTexture);
+
+	glBindVertexArray(vertexArrayObject[1]);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glUseProgram(0); // "unsets" the current shader program. Not really necessary.
 }
@@ -239,6 +311,8 @@ void gui()
 	default: Minification = GL_LINEAR;
 		break;
 	}
+	glBindTexture(GL_TEXTURE_2D, texture);
+
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, Magnification);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, Minification);
 
