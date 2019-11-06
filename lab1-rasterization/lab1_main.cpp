@@ -17,7 +17,7 @@ SDL_Window* g_window = nullptr;
 // consists of positions (from positionBuffer) and color (from colorBuffer)
 // in this example.
 GLuint vertexArrayObject;
-GLuint newVertexArrayObject[2];
+GLuint newVertexArrayObject;
 
 // The shaderProgram combines a vertex shader (vertexShader) and a
 // fragment shader (fragmentShader) into a single GLSL program that can
@@ -94,94 +94,62 @@ void initGL()
 	//		   object, and then by adding a triangle to an existing VAO.
 	//////////////////////////////////////////////////////////////////////////////
 	// Define the positions for each of the three vertices of the triangle
-	 
-	const float secondPositions[] = {
+
+	const float trianglesPositions[] = {
 		//	 X      Y     Z
 		0.1f,  0.5f,  1.0f, // v0
 		0.5f, 0.5f, 1.0f, // v1
-		0.6f,  -0.5f, 1.0f  // v2
-	};
-	GLuint secondPositionBuffer;
-	glGenBuffers(1, &secondPositionBuffer);
-	// Set the newly created buffer as the current one
-	glBindBuffer(GL_ARRAY_BUFFER, secondPositionBuffer);
-	// Send the vertex position data to the current buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(secondPositions), secondPositions, GL_STATIC_DRAW);
-	
-	const float secondColor[] = {
-		//   R     G     B
-		0.0f, 1.0f, 0.0f, // Blue
-		0.0f, 1.0f, 0.0f, // Green
-		0.0f, 1.0f, 0.0f  // Red
-	};
-	// Create a handle for the vertex color buffer
-	GLuint secondColorBuffer;
-	glGenBuffers(1, &secondColorBuffer);
-	// Set the newly created buffer as the current one
-	glBindBuffer(GL_ARRAY_BUFFER, secondColorBuffer);
-	// Send the vertex color data to the current buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(secondColor), secondColor, GL_STATIC_DRAW);
-
-	// third Triangle
-	const float thirdPositions[] = {
-		//	 X      Y     Z
+		0.6f,  -0.5f, 1.0f,  // v2
 		-0.1f,  0.5f,  1.0f, // v0
 		-0.6f, -0.5f, 1.0f, // v1
 		-0.5f,  0.5f, 1.0f  // v2
 	};
-	GLuint thirdPositionBuffer;
-	glGenBuffers(1, &thirdPositionBuffer);
-	// Set the newly created buffer as the current one
-	glBindBuffer(GL_ARRAY_BUFFER, thirdPositionBuffer);
-	// Send the vertex position data to the current buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(thirdPositions), thirdPositions, GL_STATIC_DRAW);
 
-	const float thirdColor[] = {
+	const float trianglesColor[] = {
 		//   R     G     B
+		0.0f, 1.0f, 0.0f, // Blue
+		0.0f, 1.0f, 0.0f, // Green
+		0.0f, 1.0f, 0.0f,  // Red
 		1.0f, 0.0f, 0.0f, // Blue
 		1.0f, 0.0f, 0.0f, // Green
 		1.0f, 0.0f, 0.0f  // Red
 	};
-	// Create a handle for the vertex color buffer
-	GLuint thirdColorBuffer;
-	glGenBuffers(1, &thirdColorBuffer);
+
+
+
+	GLuint trianglesPositionBuffer;
+	glGenBuffers(1, &trianglesPositionBuffer);
 	// Set the newly created buffer as the current one
-	glBindBuffer(GL_ARRAY_BUFFER, thirdColorBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, trianglesPositionBuffer);
+	// Send the vertex position data to the current buffer
+	glBufferData(GL_ARRAY_BUFFER, sizeof(trianglesPositions), trianglesPositions, GL_STATIC_DRAW);
+
+	// Create a handle for the vertex color buffer
+	GLuint trianglesColorBuffer;
+	glGenBuffers(1, &trianglesColorBuffer);
+	// Set the newly created buffer as the current one
+	glBindBuffer(GL_ARRAY_BUFFER, trianglesColorBuffer);
 	// Send the vertex color data to the current buffer
-	glBufferData(GL_ARRAY_BUFFER, sizeof(thirdColor), thirdColor, GL_STATIC_DRAW);
-	
+	glBufferData(GL_ARRAY_BUFFER, sizeof(trianglesColor), trianglesColor, GL_STATIC_DRAW);
 
 
-	glGenVertexArrays(2, newVertexArrayObject);
+
+	glGenVertexArrays(1, &newVertexArrayObject);
 	// Bind the vertex array object
 	// The following calls will affect this vertex array object.
-	glBindVertexArray(newVertexArrayObject[0]);
+	glBindVertexArray(newVertexArrayObject);
 	// Makes positionBuffer the current array buffer for subsequent calls.
-	glBindBuffer(GL_ARRAY_BUFFER, secondPositionBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, trianglesPositionBuffer);
 	// Attaches positionBuffer to vertexArrayObject, in the 0th attribute location
 	glVertexAttribPointer(0, 3, GL_FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
 	// Makes colorBuffer the current array buffer for subsequent calls.
-	glBindBuffer(GL_ARRAY_BUFFER, secondColorBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, trianglesColorBuffer);
 	// Attaches colorBuffer to vertexArrayObject, in the 1st attribute location
 	glVertexAttribPointer(1, 3, GL_FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
 
 	glEnableVertexAttribArray(0); // Enable the vertex position attribute
 	glEnableVertexAttribArray(1); // Enable the vertex color attribute
 
-
-	// The following calls will affect this vertex array object.
-	glBindVertexArray(newVertexArrayObject[1]);
-	// Makes positionBuffer the current array buffer for subsequent calls.
-	glBindBuffer(GL_ARRAY_BUFFER, thirdPositionBuffer);
-	// Attaches positionBuffer to vertexArrayObject, in the 0th attribute location
-	glVertexAttribPointer(0, 3, GL_FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
-	// Makes colorBuffer the current array buffer for subsequent calls.
-	glBindBuffer(GL_ARRAY_BUFFER, thirdColorBuffer);
-	// Attaches colorBuffer to vertexArrayObject, in the 1st attribute location
-	glVertexAttribPointer(1, 3, GL_FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
-
-	glEnableVertexAttribArray(0); // Enable the vertex position attribute
-	glEnableVertexAttribArray(1); // Enable the vertex color attribute
 
 	///////////////////////////////////////////////////////////////////////////
 	// Create shaders
@@ -209,7 +177,7 @@ void initGL()
 	int compileOK;
 	// check for compiler errors in vertex shader.
 	glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &compileOK);
-	if(!compileOK)
+	if (!compileOK)
 	{
 		std::string err = labhelper::GetShaderInfoLog(vertexShader);
 		labhelper::fatal_error(err);
@@ -220,7 +188,7 @@ void initGL()
 	glCompileShader(fragmentShader);
 	// check for compiler errors in fragment shader.
 	glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &compileOK);
-	if(!compileOK)
+	if (!compileOK)
 	{
 		std::string err = labhelper::GetShaderInfoLog(fragmentShader);
 		labhelper::fatal_error(err);
@@ -247,7 +215,7 @@ void initGL()
 	{
 		GLint linkOk = 0;
 		glGetProgramiv(shaderProgram, GL_LINK_STATUS, &linkOk);
-		if(!linkOk)
+		if (!linkOk)
 		{
 			std::string err = labhelper::GetShaderInfoLog(shaderProgram);
 			labhelper::fatal_error(err);
@@ -266,7 +234,7 @@ void display(void)
 
 	glClearColor(g_clearColor[0], g_clearColor[1], g_clearColor[2], 1.0); // Set clear color
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // Clears the color buffer and the z-buffer
-	                    // Instead of glClear(GL_BUFFER) the call should be glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+						// Instead of glClear(GL_BUFFER) the call should be glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
 	// We disable backface culling for this tutorial, otherwise care must be taken with the winding order
 	// of the vertices. It is however a lot faster to enable culling when drawing large scenes.
@@ -279,10 +247,9 @@ void display(void)
 	// Submit triangles from currently bound vertex array object.
 	glDrawArrays(GL_TRIANGLES, 0, 3); // Render 1 triangle
 
-	glBindVertexArray(newVertexArrayObject[0]);
-	glDrawArrays(GL_TRIANGLES, 0, 3); // Render 1 triangle
-	glBindVertexArray(newVertexArrayObject[1]);
-	glDrawArrays(GL_TRIANGLES, 0, 3); // Render 1 triangle
+	glBindVertexArray(newVertexArrayObject);
+
+	glDrawArrays(GL_TRIANGLES, 0, 6); // Render 1 triangle
 
 
 	glUseProgram(0); // "unsets" the current shader program. Not really necessary.
@@ -296,7 +263,7 @@ void gui()
 	// ----------------- Set variables --------------------------
 	ImGui::ColorEdit3("clear color", g_clearColor);
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-	            ImGui::GetIO().Framerate);
+		ImGui::GetIO().Framerate);
 	// ----------------------------------------------------------
 
 	// Render the GUI.
@@ -312,7 +279,7 @@ int main(int argc, char* argv[])
 
 	// render-loop
 	bool stopRendering = false;
-	while(!stopRendering)
+	while (!stopRendering)
 	{
 		// First render our geometry.
 		display();
@@ -328,13 +295,13 @@ int main(int argc, char* argv[])
 
 		// Check events (keyboard among other)
 		SDL_Event event;
-		while(SDL_PollEvent(&event))
+		while (SDL_PollEvent(&event))
 		{
 			// Allow ImGui to capture events.
 			ImGui_ImplSdlGL3_ProcessEvent(&event);
 
 			// And do our own handling of events.
-			if(event.type == SDL_QUIT || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
+			if (event.type == SDL_QUIT || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
 			{
 				stopRendering = true;
 			}

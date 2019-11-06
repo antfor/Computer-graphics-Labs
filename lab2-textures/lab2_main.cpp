@@ -29,7 +29,7 @@ GLuint shaderProgram;
 
 // The vertexArrayObject here will hold the pointers to
 // the vertex data (in positionBuffer) and color data per vertex (in colorBuffer)
-GLuint positionBuffer, colorBuffer, indexBuffer, vertexArrayObject;
+GLuint positionBuffer, colorBuffer, indexBuffer, vertexArrayObject, textureBuffer, texture;
 
 
 
@@ -70,6 +70,21 @@ void initGL()
 	//				 Enable the vertex attrib array.
 	///////////////////////////////////////////////////////////////////////////
 
+	float texcoords[] = {
+	0.0f, 0.0f,    // (u,v) for v0
+	0.0f, 15.0f,   // (u,v) for v1
+	1.0f, 15.0f,   // (u,v) for v2
+	1.0f, 0.0f     // (u,v) for v3
+	};
+
+	glGenBuffers(1, &textureBuffer);
+	glBindBuffer(GL_ARRAY_BUFFER, textureBuffer);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(texcoords), texcoords, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(2, 2, GL_FLOAT, false/*normalized*/, 0/*stride*/, 0/*offset*/);
+
+	// Enable the attribute
+	glEnableVertexAttribArray(2);
 	///////////////////////////////////////////////////////////////////////////
 	// Create the element array buffer object
 	///////////////////////////////////////////////////////////////////////////
@@ -85,7 +100,7 @@ void initGL()
 	// The loadShaderProgram and linkShaderProgam functions are defined in glutil.cpp and
 	// do exactly what we did in lab1 but are hidden for convenience
 	shaderProgram = labhelper::loadShaderProgram("../lab2-textures/simple.vert",
-	                                             "../lab2-textures/simple.frag");
+		"../lab2-textures/simple.frag");
 
 	//**********************************************
 
@@ -93,6 +108,33 @@ void initGL()
 	//			Load Texture
 	//************************************
 	// >>> @task 2
+
+	// >>> @task 2.1
+	int w, h, comp;
+	unsigned char* image = stbi_load("../scenes/asphalt.jpg", &w, &h, &comp, STBI_rgb_alpha);
+
+	glGenTextures(1, &texture);
+
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+	free(image);
+
+
+	// tell OpenGL what to do with texture coordinates outside the (0,1)
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+
+	// Sets the type of filtering to be used on magnifying and
+	// minifying the active texture. These are the nicest available options.
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
+
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+
 }
 
 void display(void)
@@ -130,6 +172,8 @@ void display(void)
 	glUniform3f(loc, camera_pan, 0, 0);
 
 	// >>> @task 3.1
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
 
 	glBindVertexArray(vertexArrayObject);
 	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
@@ -164,8 +208,41 @@ void gui()
 	ImGui::Dummy({ 0, 20 });
 	ImGui::SliderFloat("Camera Panning", &camera_pan, -1.0, 1.0);
 	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate,
-	            ImGui::GetIO().Framerate);
+		ImGui::GetIO().Framerate);
 	// ----------------------------------------------------------
+
+	GLint Magnification;
+	switch (mag)
+	{
+	case 1: Magnification = GL_NEAREST;
+		break;
+	case 0: Magnification = GL_LINEAR;
+		break;
+	default: Magnification = GL_LINEAR;
+		break;
+	}
+	GLint Minification;
+	switch (mini)
+	{
+	case 5: Minification = GL_LINEAR_MIPMAP_LINEAR;
+		break;
+	case 4: Minification = GL_LINEAR_MIPMAP_NEAREST;
+		break;
+	case 3: Minification = GL_NEAREST_MIPMAP_LINEAR;
+		break;
+	case 2: Minification = GL_NEAREST_MIPMAP_NEAREST;
+		break;
+	case 1: Minification = GL_LINEAR;
+		break;
+	case 0: Minification = GL_NEAREST;
+		break;
+	default: Minification = GL_LINEAR;
+		break;
+	}
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, Magnification);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, Minification);
+
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
 
 
 	// Render the GUI.
@@ -180,13 +257,13 @@ int main(int argc, char* argv[])
 
 	// render-loop
 	bool stopRendering = false;
-	while(!stopRendering)
+	while (!stopRendering)
 	{
 		// render to window
 		display();
 
 		// Render overlay GUI.
-		if(showUI)
+		if (showUI)
 		{
 			gui();
 		}
@@ -196,16 +273,16 @@ int main(int argc, char* argv[])
 
 		// check events (keyboard among other)
 		SDL_Event event;
-		while(SDL_PollEvent(&event))
+		while (SDL_PollEvent(&event))
 		{
 			// Allow ImGui to capture events.
 			ImGui_ImplSdlGL3_ProcessEvent(&event);
 
-			if(event.type == SDL_QUIT || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
+			if (event.type == SDL_QUIT || (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_ESCAPE))
 			{
 				stopRendering = true;
 			}
-			if(event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_g)
+			if (event.type == SDL_KEYUP && event.key.keysym.sym == SDLK_g)
 			{
 				showUI = !showUI;
 			}
