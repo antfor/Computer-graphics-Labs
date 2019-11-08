@@ -16,6 +16,7 @@ SDL_Window* g_window = nullptr;
 
 #include <glm/glm.hpp>
 #include <glm/gtx/transform.hpp>
+#include <iostream>
 using namespace glm;
 
 int mag = 1;
@@ -286,9 +287,9 @@ void gui()
 	GLint Magnification;
 	switch (mag)
 	{
-	case 1: Magnification = GL_NEAREST;
+	case 0: Magnification = GL_NEAREST;
 		break;
-	case 0: Magnification = GL_LINEAR;
+	case 1: Magnification = GL_LINEAR;
 		break;
 	default: Magnification = GL_LINEAR;
 		break;
@@ -308,15 +309,16 @@ void gui()
 		break;
 	case 0: Minification = GL_NEAREST;
 		break;
-	default: Minification = GL_LINEAR;
+	default: Minification = GL_LINEAR_MIPMAP_LINEAR;
 		break;
 	}
 	glBindTexture(GL_TEXTURE_2D, texture);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, Magnification);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, Minification);
+	std::cout << anisotropy << std::endl;
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
 
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, anisotropy);
 
 
 	// Render the GUI.
