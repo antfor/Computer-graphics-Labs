@@ -30,5 +30,6 @@ void main()
 
 	// Use these to lookup the color in the environment map
 	vec2 lookup = vec2(phi / (2.0 * PI), theta / PI);
-	fragmentColor = environment_multiplier * texture(environmentMap, lookup);
+	//fragmentColor = environment_multiplier * texture(environmentMap, lookup);
+	fragmentColor= vec4(1,1,1,1);
 }

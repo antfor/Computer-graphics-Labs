@@ -249,7 +249,7 @@ void display(void)
 
 	glBindVertexArray(newVertexArrayObject);
 
-	glDrawArrays(GL_TRIANGLES, 0, 6); // Render 1 triangle
+	glDrawArrays(GL_TRIANGLES, 0, 6); // Render 2 triangle
 
 
 	glUseProgram(0); // "unsets" the current shader program. Not really necessary.

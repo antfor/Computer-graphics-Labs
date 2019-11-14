@@ -39,6 +39,8 @@ GLuint backgroundProgram;
 GLuint fullScreenQuadVAO = 0;
 float environment_multiplier = 1.0f;
 GLuint environmentMap;
+GLuint environmentMapQuad;
+GLuint environmentMapIndecis;
 GLuint irradianceMap;
 GLuint reflectionMap;
 const std::string envmap_base_name = "001";
@@ -58,17 +60,17 @@ vec3 point_light_color = vec3(1.f, 1.f, 1.f);
 ///////////////////////////////////////////////////////////////////////////////
 
 //// MaterialTest ///////////////////////////////////////////////////////////////
-//vec3 cameraPosition(0.0f, 30.0f, 30.0f);
-//vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
-//vec3 worldUp(0.0f, 1.0f, 0.0f);
-//const std::string model_filename = "../scenes/materialtest.obj";
+vec3 cameraPosition(0.0f, 30.0f, 30.0f);
+vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
+vec3 worldUp(0.0f, 1.0f, 0.0f);
+const std::string model_filename = "../scenes/materialtest.obj";
 /////////////////////////////////////////////////////////////////////////////////
 
 // NewShip ////////////////////////////////////////////////////////////////////
-vec3 cameraPosition(-30.0f, 10.0f, 30.0f);
-vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
-vec3 worldUp(0.0f, 1.0f, 0.0f);
-const std::string model_filename = "../scenes/NewShip.obj";
+//vec3 cameraPosition(-30.0f, 10.0f, 30.0f);
+//vec3 cameraDirection = normalize(vec3(0.0f) - cameraPosition);
+//vec3 worldUp(0.0f, 1.0f, 0.0f);
+//const std::string model_filename = "../scenes/NewShip.obj";
 ///////////////////////////////////////////////////////////////////////////////
 
 
@@ -103,6 +105,34 @@ void initFullScreenQuad()
 	{
 		// >>> @task 4.1
 		// ...
+		
+		glGenVertexArrays(1, &fullScreenQuadVAO);
+		// Set it as current, i.e., related calls will affect this object
+		glBindVertexArray(fullScreenQuadVAO);
+		const float positions[] = {
+			// X      Y       
+			-1.0f, -1.0f,   // v0
+			-1.0f, 1.0f,    // v1
+			1.0f,  1.0f,    // v2
+			1.0f,  -1.0f    // v3
+		};
+		// Create a handle for the vertex position buffer
+		glGenBuffers(1, &environmentMapQuad);
+		// Set the newly created buffer as the current one
+		glBindBuffer(GL_ARRAY_BUFFER, environmentMapQuad);
+		// Send the vetex position data to the current buffer
+		glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 2, GL_FLOAT, false /*normalized*/, 0 /*stride*/, 0 /*offset*/);
+		// Enable the attribute
+		glEnableVertexAttribArray(0);
+
+		const int indices[] = {
+		0, 1, 3, // Triangle 1
+		1, 2, 3  // Triangle 2
+		};
+		glGenBuffers(1, &environmentMapIndecis);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, environmentMapIndecis);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 	}
 }
 
@@ -116,6 +146,19 @@ void drawFullScreenQuad()
 	///////////////////////////////////////////////////////////////////////////
 	// >>> @task 4.2
 	// ...
+	glBindVertexArray(fullScreenQuadVAO);
+	GLboolean depth_test_enabled;
+	glGetBooleanv(GL_DEPTH_TEST, &depth_test_enabled);
+	glDisable(GL_DEPTH_TEST);
+	
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, environmentMap);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+	if (depth_test_enabled) {
+		glEnable(GL_DEPTH_TEST);
+	}
+	
 }
 
 
@@ -169,6 +212,7 @@ void initialize()
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+
 	}
 	{ // Irradiance map
 		HDRImage image("../scenes/envmaps/" + envmap_base_name + "_irradiance.hdr");
@@ -257,6 +301,11 @@ void display(void)
 	// Task 4.3 - Render a fullscreen quad, to generate the background from the
 	//            environment map.
 	///////////////////////////////////////////////////////////////////////////
+	glUseProgram(backgroundProgram);
+	labhelper::setUniformSlow(backgroundProgram, "environment_multiplier", environment_multiplier);
+	labhelper::setUniformSlow(backgroundProgram, "inv_PV", inverse(projectionMatrix * viewMatrix));
+	labhelper::setUniformSlow(backgroundProgram, "camera_pos", cameraPosition);
+	drawFullScreenQuad();
 
 	///////////////////////////////////////////////////////////////////////////
 	// Render the .obj models

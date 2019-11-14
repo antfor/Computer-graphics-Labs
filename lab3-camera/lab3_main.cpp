@@ -55,8 +55,6 @@ Model* carModel = nullptr;
 Model* groundModel = nullptr;
 mat4 carModelMatrix(1.0f);
 mat4 secondCarModelMatrix(1.0f);
-vec3 oldDirection = vec3(0, 0, 1);
-float angle = 0;
 
 vec3 worldUp = vec3(0.0f, 1.0f, 0.0f);
 
@@ -191,6 +189,7 @@ void display()
 	float s = r * 2 * M_PI;
 	float v = s / t;
 	float p = currentTime / t;
+	p = p - ((int)p);
 	float rad = 2 * M_PI * p;
 	float x = cos(rad);
 	float z = sin(rad);
@@ -198,9 +197,13 @@ void display()
 
 
 	vec3 newDirection = cross(normalize(vec3(x, 0, z)), vec3(0, 1, 0));
-	float cosA = dot(normalize(oldDirection), normalize(newDirection));
-	angle += acos(cosA) * -1.0f;
-	oldDirection = newDirection;
+	float cosA = dot(vec3(0, 0, 1), normalize(newDirection));
+	float dir = 1.0f;
+	if (rad < M_PI) {
+		dir = -1.0f;
+	}
+	float angle = acos(cosA) * dir;
+
 	mat4 rot = rotate(angle, vec3(0, 1, 0));
 
 	mat4 sca = scale(vec3(0.5, 0.5, 0.5));
@@ -333,13 +336,13 @@ int main(int argc, char* argv[])
 		{
 			printf("Key Up is pressed down\n");
 			cameraPosition += 0.3f * norDir;
-			
+
 		}
 		if (state[SDL_SCANCODE_S])
 		{
 			printf("Key Down is pressed down\n");
 			cameraPosition -= 0.3f * norDir;
-			
+
 		}
 		if (state[SDL_SCANCODE_A])
 		{
