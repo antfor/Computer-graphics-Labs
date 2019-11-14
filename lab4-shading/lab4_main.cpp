@@ -111,10 +111,10 @@ void initFullScreenQuad()
 		glBindVertexArray(fullScreenQuadVAO);
 		const float positions[] = {
 			// X      Y       
-			-1.0f, -1.0f,   // v0
-			-1.0f, 1.0f,    // v1
-			1.0f,  1.0f,    // v2
-			1.0f,  -1.0f    // v3
+			1.0f, -1.0f,   // v0
+			1.0f, 1.0f,    // v1
+			-1.0f,  -1.0f,    // v2
+			-1.0f,  1.0f    // v3
 		};
 		// Create a handle for the vertex position buffer
 		glGenBuffers(1, &environmentMapQuad);
@@ -127,8 +127,8 @@ void initFullScreenQuad()
 		glEnableVertexAttribArray(0);
 
 		const int indices[] = {
-		0, 1, 3, // Triangle 1
-		1, 2, 3  // Triangle 2
+		1, 2, 0, // Triangle 1
+		1, 3, 2  // Triangle 2
 		};
 		glGenBuffers(1, &environmentMapIndecis);
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, environmentMapIndecis);
