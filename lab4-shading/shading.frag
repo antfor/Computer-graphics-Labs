@@ -140,7 +140,7 @@ vec3 calculateIndirectIllumination(vec3 wo, vec3 n, vec3 base_color)
 	///////////////////////////////////////////////////////////////////////////
 	float s = material_shininess;
 	float roughness = sqrt(sqrt(2/(s+2)));
-	vec3 iws = normalize((viewInverse * -vec4(wo.x,wo.y,wo.z,0)).xyz); 
+	vec3 iws = -normalize((viewInverse * vec4(wo.x,wo.y,wo.z,0)).xyz); 
 	vec3 wi = normalize(reflect(iws,nws));
 	
 	vec3 wh = normalize(wi+wo);
@@ -169,9 +169,10 @@ void main()
 	//            shall be normalized vectors in view-space.
 	///////////////////////////////////////////////////////////////////////////
 	//vec3 wi = normalize(viewSpaceLightPosition-viewSpacePosition);
-	vec3 n = normalize(viewSpaceNormal);
-	vec3 wo = normalize(-viewSpacePosition);
 	//vec3 wo =normalize(-1*wi + 2*dot(n,wi)*n);
+	vec3 n = normalize(viewSpaceNormal);
+	vec3 wo = -normalize(viewSpacePosition);
+
 
 	vec3 base_color = material_color;
 	if(has_color_texture == 1)

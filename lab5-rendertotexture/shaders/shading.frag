@@ -56,21 +56,106 @@ uniform vec3 viewSpaceLightPosition;
 layout(location = 0) out vec4 fragmentColor;
 
 
+vec2 calculateLookup (vec3 dir){
+
+	// Calculate the spherical coordinates of the direction
+	float theta = acos(max(-1.0f, min(1.0f, dir.y)));
+	float phi = atan(dir.z, dir.x);
+	if(phi < 0.0f)
+	{
+		phi = phi + 2.0f * PI;
+	}
+
+	// Use these to lookup the color in the environment map
+	return vec2(phi / (2.0 * PI), theta / PI);
+}
+
 vec3 calculateDirectIllumiunation(vec3 wo, vec3 n, vec3 base_color)
 {
-	return vec3(1.f);
+	
+	vec3 wi = normalize(viewSpaceLightPosition-viewSpacePosition);
+	if(dot(n, wi) <= 0){
+		return vec3(0,0,0);
+	}
+
+	float d = distance(viewSpaceLightPosition,viewSpacePosition);
+	vec3 Li = point_light_intensity_multiplier * point_light_color * 1.0/(pow(d,2));
+
+		///////////////////////////////////////////////////////////////////////////
+		// Calculate the diffuse term and return that as the result
+		///////////////////////////////////////////////////////////////////////////
+		vec3 diffuse_term = material_color*1.0 / PI * abs(dot(n,wi)) * Li;
+
+	///////////////////////////////////////////////////////////////////////////
+	//Calculate the Torrance Sparrow BRDF and return the light
+	//          reflected from that instead
+	///////////////////////////////////////////////////////////////////////////
+	vec3 wh=normalize(wi+wo);
+	float F = material_fresnel + (1-material_fresnel)*pow(1-dot(wh,wi),5);
+	float s=material_shininess;
+	float D = ((s+2)/(2*PI))*pow(dot(n,wh),s);
+	if(isnan(D)){
+		D=0;			//?
+	}
+	float G = min(1,min(2*dot(n,wh)*dot(n,wo)/dot(wo,wh),2*dot(n,wh)*dot(n,wi)/dot(wo,wh)));
+	float brdf = F*D*G/(4*dot(n,wo)*dot(n,wi));
+	///////////////////////////////////////////////////////////////////////////
+	// Make your shader respect the parameters of our material model.
+	///////////////////////////////////////////////////////////////////////////
+
+	vec3 dielectric_term = brdf * dot(n,wi)*Li+(1-F)*diffuse_term;
+	vec3 metal_term = brdf*material_color * dot(n,wi)*Li;
+	float m= material_metalness;
+	vec3 microfacet_term = m * metal_term + (1-m)* dielectric_term;
+	float  r = material_reflectivity;
+
+	return r*microfacet_term+(1.0-r)*diffuse_term;
+
 }
 
 vec3 calculateIndirectIllumination(vec3 wo, vec3 n, vec3 base_color)
 {
-	return vec3(0.0);
+	vec3 indirect_illum = vec3(0.f);
+	///////////////////////////////////////////////////////////////////////////
+	//          the diffuse reflection
+	///////////////////////////////////////////////////////////////////////////
+		// Calculate the world-space direction from the camera to that position;
+	vec3 nws = normalize((viewInverse * vec4(n.x,n.y,n.z,0)).xyz); 
+
+	vec3 irradiance = texture(irradianceMap, calculateLookup(nws)).xyz;
+
+	vec3 diffuse_term = material_color * (1.0/PI) * irradiance;
+
+	///////////////////////////////////////////////////////////////////////////
+
+	float s = material_shininess;
+	float roughness = sqrt(sqrt(2/(s+2)));
+	vec3 iws = -normalize((viewInverse * vec4(wo.x,wo.y,wo.z,0)).xyz); 
+	vec3 wi = normalize(reflect(iws,nws));
+	
+	vec3 wh = normalize(wi+wo);
+
+	vec3 Li = environment_multiplier * textureLod(reflectionMap, calculateLookup(wi), roughness * 0.7).xyz;
+
+	float F = material_fresnel + (1-material_fresnel)*pow(1-dot(wh,wi),5);
+
+	vec3 dielectric_term = F * Li + (1 - F) * diffuse_term;
+	vec3 metal_term = F * material_color * Li;
+
+	float m= material_metalness;
+	vec3 microfacet_term = m * metal_term + (1-m) * dielectric_term;
+	float  r = material_reflectivity;
+
+	indirect_illum = r*microfacet_term+(1.0-r)*diffuse_term;
+
+	return indirect_illum;
 }
 
 
 void main()
 {
-	vec3 wo = -normalize(viewSpacePosition);
 	vec3 n = normalize(viewSpaceNormal);
+	vec3 wo = -normalize(viewSpacePosition);
 
 	vec3 base_color = material_color;
 	if(has_color_texture == 1)

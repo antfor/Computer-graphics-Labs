@@ -133,8 +133,16 @@ struct FboInfo
 		// Generate and bind framebuffer
 		///////////////////////////////////////////////////////////////////////
 		// >>> @task 1
-		//...
+		glGenFramebuffers(1, &framebufferId);
+		glBindFramebuffer(GL_FRAMEBUFFER, framebufferId);
 
+		// bind the texture as color attachment 0 (to the currently bound framebuffer)
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorTextureTarget, 0);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+
+		// bind the texture as depth attachment(to the currently bound framebuffer)
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthBuffer, 0);
+		
 		// check if framebuffer is complete
 		isComplete = checkFramebufferComplete();
 
@@ -219,6 +227,11 @@ void initGL()
 	// Setup Framebuffers
 	///////////////////////////////////////////////////////////////////////////
 	int w, h;
+	SDL_GetWindowSize(g_window, &w, &h);
+	const int numFbos = 5;
+	for (int i = 0; i < numFbos; i++) {
+		fboList.push_back(FboInfo(w, h));
+	}
 	SDL_GetWindowSize(g_window, &w, &h);
 }
 
@@ -312,12 +325,28 @@ void display()
 	// draw scene from security camera
 	///////////////////////////////////////////////////////////////////////////
 	// >>> @task 2
-	// ...
+
+	FboInfo& securityFB = fboList[0];
+	glBindFramebuffer(GL_FRAMEBUFFER, securityFB.framebufferId);
+
+	glViewport(0, 0, securityFB.width, securityFB.height);
+	glClearColor(0.2, 0.2, 0.8, 1.0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	drawScene(securityCamViewMatrix, securityCamProjectionMatrix);
+
+	labhelper::Material& screen = landingpadModel->m_materials[8];
+	screen.m_emission_texture.gl_id = securityFB.colorTextureTarget;
+	
+
+
 
 	///////////////////////////////////////////////////////////////////////////
 	// draw scene from camera
 	///////////////////////////////////////////////////////////////////////////
-	glBindFramebuffer(GL_FRAMEBUFFER, 0); // to be replaced with another framebuffer when doing post processing
+	// >>> @task 3
+	FboInfo& postProcessingFB = fboList[1];
+	glBindFramebuffer(GL_FRAMEBUFFER, postProcessingFB.framebufferId); // to be replaced with another framebuffer when doing post processing
 	glViewport(0, 0, w, h);
 	glClearColor(0.2f, 0.2f, 0.8f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -330,7 +359,18 @@ void display()
 	///////////////////////////////////////////////////////////////////////////
 	// Post processing pass(es)
 	///////////////////////////////////////////////////////////////////////////
+	// >>> @task 3
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	glUseProgram(postFxShader);
 
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, postProcessingFB.colorTextureTarget);
+
+	labhelper::setUniformSlow(postFxShader, "time", currentTime);
+	labhelper::setUniformSlow(postFxShader, "currentEffect", currentEffect);
+	labhelper::setUniformSlow(postFxShader, "filterSize", filterSizes[filterSize - 1]);
+
+	labhelper::drawFullScreenQuad();
 
 	glUseProgram(0);
 
