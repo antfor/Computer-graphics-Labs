@@ -59,6 +59,10 @@ uniform vec3 viewSpaceLightDir;
 uniform float spotOuterAngle;
 uniform float spotInnerAngle;
 
+// ??
+uniform bool useSpotLight;
+uniform bool useSoftFalloff;
+
 ///////////////////////////////////////////////////////////////////////////////
 // Output color
 ///////////////////////////////////////////////////////////////////////////////
@@ -165,7 +169,7 @@ vec3 calculateIndirectIllumination(vec3 wo, vec3 n)
 void main()
 {
 	//float visibility = 1.0;
-	//float attenuation = 1.0;
+	float spotAttenuation = 1.0;
 
 	//task 2
 	//vec4 shadowMapCoord = lightMatrix * vec4(viewSpacePosition, 1.f);
@@ -175,12 +179,25 @@ void main()
 	float visibility = textureProj( shadowMapTex, shadowMapCoord );
 
 	//task 5
-	vec3 posToLight = normalize(viewSpaceLightPosition - viewSpacePosition);
-	float cosAngle = dot(posToLight, -viewSpaceLightDir);
+	if(useSpotLight){
+	
+	
+		vec3 posToLight = normalize(viewSpaceLightPosition - viewSpacePosition);
+		float cosAngle = dot(posToLight, -viewSpaceLightDir);
 
-	// Spotlight with hard border:
-	//float spotAttenuation = (cosAngle > spotOuterAngle) ? 1.0 : 0.0;
-	float spotAttenuation = smoothstep(spotOuterAngle, spotInnerAngle, cosAngle);
+	
+		if(useSoftFalloff){
+
+			spotAttenuation = smoothstep(spotOuterAngle, spotInnerAngle, cosAngle);
+
+		}else{
+
+			 spotAttenuation = (cosAngle > spotOuterAngle) ? 1.0 : 0.0;
+
+		}
+	
+	}
+
 	visibility *= spotAttenuation;
 
 	vec3 wo = -normalize(viewSpacePosition);
