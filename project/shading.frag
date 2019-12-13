@@ -7,30 +7,31 @@ precision highp float;
 // Material
 ///////////////////////////////////////////////////////////////////////////////
 uniform vec3 material_color;
-uniform float material_reflectivity;
-uniform float material_metalness;
-uniform float material_fresnel;
-uniform float material_shininess;
-uniform float material_emission;
+uniform float material_reflectivity; 
+uniform float material_metalness;	
+uniform float material_fresnel;		
+uniform float material_shininess;	
+uniform float material_emission;	
+vec3 diffuse_color;
 
-uniform int has_emission_texture;
-uniform int has_color_texture;
-layout(binding = 0) uniform sampler2D colorMap;
+uniform int has_emission_texture;	
+uniform int has_color_texture;		
+layout(binding = 3) uniform sampler2D colorMap;		
 layout(binding = 5) uniform sampler2D emissiveMap;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Environment
 ///////////////////////////////////////////////////////////////////////////////
-layout(binding = 6) uniform sampler2D environmentMap;
-layout(binding = 7) uniform sampler2D irradianceMap;
-layout(binding = 8) uniform sampler2D reflectionMap;
-uniform float environment_multiplier;
+layout(binding = 6) uniform sampler2D environmentMap;	
+layout(binding = 7) uniform sampler2D irradianceMap;	
+layout(binding = 8) uniform sampler2D reflectionMap;	
+uniform float environment_multiplier;					
 
 ///////////////////////////////////////////////////////////////////////////////
 // Light source
 ///////////////////////////////////////////////////////////////////////////////
-uniform vec3 point_light_color = vec3(1.0, 1.0, 1.0);
-uniform float point_light_intensity_multiplier = 50.0;
+uniform vec3 point_light_color = vec3(1.0, 1.0, 1.0);	
+uniform float point_light_intensity_multiplier = 10000.0;
 
 ///////////////////////////////////////////////////////////////////////////////
 // Constants
@@ -47,8 +48,8 @@ in vec3 viewSpacePosition;
 ///////////////////////////////////////////////////////////////////////////////
 // Input uniform variables
 ///////////////////////////////////////////////////////////////////////////////
-uniform mat4 viewInverse;
-uniform vec3 viewSpaceLightPosition;
+uniform mat4 viewInverse;					
+uniform vec3 viewSpaceLightPosition;	
 
 ///////////////////////////////////////////////////////////////////////////////
 // Output color
@@ -56,21 +57,113 @@ uniform vec3 viewSpaceLightPosition;
 layout(location = 0) out vec4 fragmentColor;
 
 
+vec2 calculateLookup (vec3 dir){
+
+	// Calculate the spherical coordinates of the direction
+	float theta = acos(max(-1.0f, min(1.0f, dir.y)));
+	float phi = atan(dir.z, dir.x);
+	if(phi < 0.0f)
+	{
+		phi = phi + 2.0f * PI;
+	}
+
+	// Use these to lookup the color in the environment map
+	return vec2(phi / (2.0 * PI), theta / PI);
+}
 
 vec3 calculateDirectIllumiunation(vec3 wo, vec3 n)
 {
-	return vec3(material_color);
+	
+	vec3 wi = normalize(viewSpaceLightPosition-viewSpacePosition);
+	if(dot(n, wi) <= 0){
+		return vec3(0,0,0);
+	}
+
+	float d = distance(viewSpaceLightPosition,viewSpacePosition);
+	vec3 Li = point_light_intensity_multiplier * point_light_color * 1.0/(pow(d,2));
+
+		///////////////////////////////////////////////////////////////////////////
+		// Calculate the diffuse term and return that as the result
+		///////////////////////////////////////////////////////////////////////////
+		vec3 diffuse_term = diffuse_color*1.0 / PI * abs(dot(n,wi)) * Li;
+
+	///////////////////////////////////////////////////////////////////////////
+	//Calculate the Torrance Sparrow BRDF and return the light
+	//          reflected from that instead
+	///////////////////////////////////////////////////////////////////////////
+	vec3 wh=normalize(wi+wo);
+	float F = material_fresnel + (1-material_fresnel)*pow(1-dot(wh,wi),5);
+	float s=material_shininess;
+	float D = ((s+2)/(2*PI))*pow(dot(n,wh),s);
+	if(isnan(D)){
+		D=0;			//?
+	}
+	float G = min(1,min(2*dot(n,wh)*dot(n,wo)/dot(wo,wh),2*dot(n,wh)*dot(n,wi)/dot(wo,wh)));
+	float brdf = F*D*G/(4*dot(n,wo)*dot(n,wi));
+	///////////////////////////////////////////////////////////////////////////
+	// Make your shader respect the parameters of our material model.
+	///////////////////////////////////////////////////////////////////////////
+
+	vec3 dielectric_term = brdf * dot(n,wi)*Li+(1-F)*diffuse_term;
+	vec3 metal_term = brdf*diffuse_color * dot(n,wi)*Li;
+	float m= material_metalness;
+	vec3 microfacet_term = m * metal_term + (1-m)* dielectric_term;
+	float  r = material_reflectivity;
+
+	return r*microfacet_term+(1.0-r)*diffuse_term;
+
 }
 
 vec3 calculateIndirectIllumination(vec3 wo, vec3 n)
 {
-	return vec3(0.0);
+	vec3 indirect_illum;
+	///////////////////////////////////////////////////////////////////////////
+	//          the diffuse reflection
+	///////////////////////////////////////////////////////////////////////////
+		// Calculate the world-space direction from the camera to that position;
+	vec3 nws = normalize((viewInverse * vec4(n,0)).xyz); 
+
+	vec3 irradiance = texture(irradianceMap, calculateLookup(nws)).xyz;
+
+	vec3 diffuse_term =environment_multiplier *  diffuse_color * (1.0/PI) * irradiance;
+
+	///////////////////////////////////////////////////////////////////////////
+
+	float s = material_shininess;
+	float roughness = sqrt(sqrt(2/(s+2)));
+	vec3 iws = -normalize((viewInverse * vec4(wo.x,wo.y,wo.z,0)).xyz); 
+	vec3 wi = normalize(reflect(iws,nws));
+	
+	vec3 wh = normalize(wi+wo);
+
+	vec3 Li = environment_multiplier * textureLod(reflectionMap, calculateLookup(wi), roughness * 0.7).xyz;
+
+	float F = material_fresnel + (1-material_fresnel)*pow(1-dot(wh,wi),5);
+
+	vec3 dielectric_term = F * Li + (1 - F) * diffuse_term;
+	vec3 metal_term = F * diffuse_color * Li;
+
+	float m= material_metalness;
+	vec3 microfacet_term = m * metal_term + (1-m) * dielectric_term;
+	float  r = material_reflectivity;
+
+	indirect_illum = r*microfacet_term+(1.0-r)*diffuse_term;
+
+	return indirect_illum;
 }
 
 void main()
 {
+	//todo add shadows....
 	float visibility = 1.0;
 	float attenuation = 1.0;
+
+	diffuse_color = material_color;
+
+	if(has_color_texture == 1){
+		diffuse_color = (texture2D(colorMap,texCoord.xy).xyz);
+		//diffuse_color = vec3(1,1,1);
+	}
 
 	vec3 wo = -normalize(viewSpacePosition);
 	vec3 n = normalize(viewSpaceNormal);
@@ -84,14 +177,19 @@ void main()
 	///////////////////////////////////////////////////////////////////////////
 	// Add emissive term. If emissive texture exists, sample this term.
 	///////////////////////////////////////////////////////////////////////////
-	vec3 emission_term = material_emission * material_color;
+	vec3 emission_term = material_emission * diffuse_color;
 	if(has_emission_texture == 1)
 	{
 		emission_term = texture(emissiveMap, texCoord).xyz;
-	}
+	}	
 
 	vec3 shading = direct_illumination_term + indirect_illumination_term + emission_term;
-
+	if(any(isnan(shading)))
+	{
+		shading.xyz = vec3(1.f, 0.f, 1.f);
+	}
 	fragmentColor = vec4(shading, 1.0);
+	
+	fragmentColor = vec4(n*0.5+0.5, 1.0);
 	return;
 }

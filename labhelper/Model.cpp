@@ -502,8 +502,7 @@ void render(const Model* model, const bool submitMaterials)
 			glUniform1i(glGetUniformLocation(current_program, "has_metalness_texture"), has_metalness_texture);
 			glUniform1i(glGetUniformLocation(current_program, "has_fresnel_texture"), has_fresnel_texture);
 			glUniform1i(glGetUniformLocation(current_program, "has_shininess_texture"), has_shininess_texture);
-			glUniform1i(glGetUniformLocation(current_program, "has_emission_texture"),
-			            has_emission_texture ? 1 : 0);
+			glUniform1i(glGetUniformLocation(current_program, "has_emission_texture"),has_emission_texture ? 1 : 0);
 			glUniform3fv(glGetUniformLocation(current_program, "material_color"), 1, &material.m_color.x);
 			glUniform3fv(glGetUniformLocation(current_program, "material_diffuse_color"), 1,
 			             &material.m_color.x); //FIXME: Compatibility with old shading model of lab3.
