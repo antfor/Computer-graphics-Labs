@@ -110,46 +110,96 @@ float* HeightField::normals(int numNormals, int tesselation) {
 	}
 
 	float* normals = new float[numNormals * 3];
-	int x, y, n = 0;
-	float left, right, down, up, middle, z;
+	int n = 0;
+	float left, right, down, up, middle, digUp, digDown, x, z;
 	float dt = m_width * 1.0 / tesselation;
 
 	float dpixels = m_width * 1.0 / tesselation;
 	//float dpos = 2 * dpixels / m_width; 
-	float dpos = 4.0 / tesselation;
+	float dpos = 2.0 / tesselation;
+	float digDpos = pow(dpos * 2, 0.5);
+	vec3 p0, p1, p2, p3, q, r, s, normal;
+	for (int j = 0; j < tesselation; j++) {
 
-	for (int i = 0; i <= tesselation; i++) {
+		for (int i = 0; i < tesselation; i++) {
 
-		for (int j = 0; j <= tesselation; j++) {
+			normal = vec3(0);
 
-			left = getHeight(i - 1, j, dpixels);
-			right = getHeight(i + 1, j, dpixels);
-			down = getHeight(i, j - 1, dpixels);
-			up = getHeight(i, j + 1, dpixels);
+			middle = getHeight(i, j, dpixels);
+			x = i * dpos;
+			z = j * dpos;
 
-			//float angle = atan2(right - left, dpos);
-			float angle = atan2(left - right, dpos);
+			p0 = vec3(x, middle, z);
+			
+			if (0 < i && j < tesselation - 1) {
+				digUp = getHeight(i - 1, j + 1, dpixels);
+				left = getHeight(i - 1, j, dpixels);
+				up = getHeight(i, j + 1, dpixels);
 
-			if (angle < 0) {
-				angle += M_PI * 2;
+				p1 = vec3(x - dpos, left, z);
+				p2 = vec3(x - dpos, digUp, z + dpos);
+				p3 = vec3(x, up, z + dpos);
+
+				q = p1 - p0;
+				r = p2 - p0;
+				s = p3 - p0;
+
+				normal -= normalize(cross(s, r));
+				normal -= normalize(cross(r, q));
+
+			}
+			if (i < tesselation - 1 && 0 < j) {
+				digDown = getHeight(i + 1, j - 1, dpixels);
+				right = getHeight(i + 1, j, dpixels);
+				down = getHeight(i, j - 1, dpixels);
+
+				p1 = vec3(x + dpos, right, z);
+				p2 = vec3(x + dpos, digDown, z - dpos);
+				p3 = vec3(x, down, z - dpos);
+
+				q = p1 - p0;
+				r = p2 - p0;
+				s = p3 - p0;
+
+				normal -= normalize(cross(s, r));
+				normal -= normalize(cross(r, q));
+			}
+			
+			if (0 < i && 0 < j) {
+				left = getHeight(i - 1, j, dpixels);
+				down = getHeight(i, j - 1, dpixels);
+
+				p1 = vec3(x - dpos, left, z);
+				p3 = vec3(x, down, z - dpos);
+
+				q = normalize(p1 - p0);
+				s = normalize(p3 - p0);
+
+				normal -= normalize(cross(q, s));
+			}
+			if (i < tesselation - 1 && j < tesselation - 1) {
+				right = getHeight(i + 1, j, dpixels);
+				up = getHeight(i, j + 1, dpixels);
+
+				p1 = vec3(x + dpos, right, z);
+				p3 = vec3(x, up, z + dpos);
+
+				q = normalize(p1 - p0);
+				s = normalize(p3 - p0);
+
+				normal -= normalize(cross(q, s));
 			}
 
-			vec3 nx = vec4(0, 1, 0, 0) * rotate(angle, vec3(0, 0, 1));
-
-			//angle = atan2(up - down, dpos);
-			angle = atan2(down - up, dpos);
-
-			if (angle < 0) {
-				angle += M_PI * 2;
-			}
-
-			vec3 nz = vec4(0, 1, 0, 0) * rotate(angle, vec3(1, 0, 0));
-
-			vec3 normal = normalize(nx + nz);
-
-			normals[n] = normal.x;
-			normals[n + 1] = normal.y;
-			normals[n + 2] = normal.z;
+			std::cout << "\n";
+			std::cout << normal.x;
+			std::cout << " : ";
+			std::cout << normal.x;
+			std::cout << " : ";
+			std::cout << normal.x;
+			normal = normalize(normal);
+			normals[n] = (float)normal.x;
+			normals[n + 1] = (float)normal.y;
+			normals[n + 2] = (float)normal.z;
 
 			n += 3;
 
@@ -159,7 +209,7 @@ float* HeightField::normals(int numNormals, int tesselation) {
 	return normals;
 }
 
-int getPixel(int i, int j, float dm, int width) {
+int getPixel(int j, int i, float dm, int width) {
 	if (i < 0) {
 		i = 0;
 	}
@@ -175,8 +225,8 @@ int getPixel(int i, int j, float dm, int width) {
 	return x + y;
 }
 
-float HeightField::getHeight(int i, int j, float dm) {
-	int pixel = getPixel(i, j, dm, m_width);
+float HeightField::getHeight(int x, int y, float dm) {
+	int pixel = getPixel(x, y, dm, m_width);
 	float z = m_heightData[pixel];
 	return calculateHeight(z);
 }
@@ -330,7 +380,7 @@ void HeightField::submitTriangles(const mat4& viewMatrix, const mat4& projection
 	labhelper::setUniformSlow(m_shaderProgram, "material_metalness", 0.0f);
 	labhelper::setUniformSlow(m_shaderProgram, "material_fresnel", 0.04f);
 	labhelper::setUniformSlow(m_shaderProgram, "material_shininess", 0.7f);
-	labhelper::setUniformSlow(m_shaderProgram, "material_emission", 0.0f); 
+	labhelper::setUniformSlow(m_shaderProgram, "material_emission", 0.0f);
 
 	//texture
 	labhelper::setUniformSlow(m_shaderProgram, "has_color_texture", 1);
