@@ -112,16 +112,15 @@ float* HeightField::normals(int numNormals, int tesselation) {
 	float* normals = new float[numNormals * 3];
 	int n = 0;
 	float left, right, down, up, middle, digUp, digDown, x, z;
-	float dt = m_width * 1.0 / tesselation;
 
 	float dpixels = m_width * 1.0 / tesselation;
-	//float dpos = 2 * dpixels / m_width; 
 	float dpos = 2.0 / tesselation;
 	float digDpos = pow(dpos * 2, 0.5);
 	vec3 p0, p1, p2, p3, q, r, s, normal;
-	for (int j = 0; j < tesselation; j++) {
 
-		for (int i = 0; i < tesselation; i++) {
+	for (int j = 0; j <= tesselation; j++) {
+
+		for (int i = 0; i <= tesselation; i++) {
 
 			normal = vec3(0);
 
@@ -130,7 +129,7 @@ float* HeightField::normals(int numNormals, int tesselation) {
 			z = j * dpos;
 
 			p0 = vec3(x, middle, z);
-			
+
 			if (0 < i && j < tesselation - 1) {
 				digUp = getHeight(i - 1, j + 1, dpixels);
 				left = getHeight(i - 1, j, dpixels);
@@ -164,7 +163,7 @@ float* HeightField::normals(int numNormals, int tesselation) {
 				normal -= normalize(cross(s, r));
 				normal -= normalize(cross(r, q));
 			}
-			
+
 			if (0 < i && 0 < j) {
 				left = getHeight(i - 1, j, dpixels);
 				down = getHeight(i, j - 1, dpixels);
@@ -190,12 +189,6 @@ float* HeightField::normals(int numNormals, int tesselation) {
 				normal -= normalize(cross(q, s));
 			}
 
-			std::cout << "\n";
-			std::cout << normal.x;
-			std::cout << " : ";
-			std::cout << normal.x;
-			std::cout << " : ";
-			std::cout << normal.x;
 			normal = normalize(normal);
 			normals[n] = (float)normal.x;
 			normals[n + 1] = (float)normal.y;

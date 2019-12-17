@@ -28,8 +28,7 @@ void main()
 	float max = 25.161;
 	float m=2.0/6000 * scale;
 	float x=texture2D(fielstexture, texCoordIn.xy).x;
-	//float x = normalIn.x;
-	//x = 0	.5*pow(x,0.5);
+
 	float height =(x*(max-min)+min)*m;
 	
 	gl_Position = modelViewProjectionMatrix * vec4(position.x, height, position.z, 1.0);
