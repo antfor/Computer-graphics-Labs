@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include "Pathtracer.h"
 #include "sampling.h"
+#include <iostream>
 
 using namespace glm;
 

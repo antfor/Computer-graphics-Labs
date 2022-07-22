@@ -1,6 +1,7 @@
 #include "material.h"
 #include "sampling.h"
 
+
 namespace pathtracer
 {
 ///////////////////////////////////////////////////////////////////////////
@@ -12,6 +13,7 @@ vec3 Diffuse::f(const vec3& wi, const vec3& wo, const vec3& n)
 		return vec3(0.0f);
 	if(!sameHemisphere(wi, wo, n))
 		return vec3(0.0f);
+
 	return (1.0f / M_PI) * color;
 }
 
@@ -33,15 +35,39 @@ vec3 Diffuse::sample_wi(vec3& wi, const vec3& wo, const vec3& n, float& p)
 ///////////////////////////////////////////////////////////////////////////
 vec3 BlinnPhong::refraction_brdf(const vec3& wi, const vec3& wo, const vec3& n)
 {
-	return vec3(0.0f);
+	//std::cout << refraction_layer->f(wi, wo, n).x;
+
+	return  refraction_layer->f(wi, wo, n);
+
+	vec3 wh = normalize(wi + wo);
+	float F = (R0 + (1 - R0) * (1 - pow(dot(wh, wi), 5)));
+
+	if (refraction_layer == NULL)
+		return vec3(0.0f);
+
+	return (1 - F) * refraction_layer->f(wi, wo, n);
 }
 vec3 BlinnPhong::reflection_brdf(const vec3& wi, const vec3& wo, const vec3& n)
 {
-	return vec3(0.0f);
+	if (!sameHemisphere(wi, wo, n))
+		return vec3(0.0f);
+
+	vec3 wh = normalize(wi +wo);
+	float F = (R0 + (1 - R0) * (1 - pow(dot(wh, wi), 5)));
+	float D = (shininess+2.0)/(M_PI*2.0) * pow(dot(n, wh), shininess);
+	D = min(1.0f, D); // ???
+
+	float G = min(1.0f, min(2 * dot(n,wh) * dot(n,wo) /dot(wo,wh), 2 * dot(n, wh) * dot(n, wi) /dot(wo,wh)));
+	float brdf = (F * D * G) / (4 * dot(n, wo) * dot (n, wi));
+	
+	//return vec3(brdf);
+	return vec3(brdf);
+	//return vec3(0.0f);
 }
 
 vec3 BlinnPhong::f(const vec3& wi, const vec3& wo, const vec3& n)
 {
+	
 	return reflection_brdf(wi, wo, n) + refraction_brdf(wi, wo, n);
 }
 
@@ -75,7 +101,7 @@ vec3 BlinnPhongMetal::reflection_brdf(const vec3& wi, const vec3& wo, const vec3
 ///////////////////////////////////////////////////////////////////////////
 vec3 LinearBlend::f(const vec3& wi, const vec3& wo, const vec3& n)
 {
-	return vec3(0.0);
+	return w * bsdf0->f(wi,wo,n) + (1-w) * bsdf1->f(wi, wo, n);
 }
 
 vec3 LinearBlend::sample_wi(vec3& wi, const vec3& wo, const vec3& n, float& p)

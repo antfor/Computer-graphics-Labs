@@ -75,7 +75,17 @@ vec3 Li(Ray& primary_ray)
 	///////////////////////////////////////////////////////////////////
 
 	Diffuse diffuse(hit.material->m_color);
-	BRDF& mat = diffuse;
+	//BRDF& mat = diffuse;
+	BlinnPhong dielectric(hit.material->m_shininess, hit.material->m_fresnel, &diffuse);
+	//BRDF& mat = dielectric;
+
+	BlinnPhongMetal metal(hit.material->m_color, hit.material->m_shininess, hit.material->m_fresnel);
+	LinearBlend metal_blend(hit.material->m_metalness, &metal, &dielectric);
+	LinearBlend reflectivity_blend(hit.material->m_reflectivity, &metal_blend, &diffuse);
+	BRDF& mat = reflectivity_blend;
+
+	
+	
 	///////////////////////////////////////////////////////////////////
 	// Calculate Direct Illumination from light.
 	///////////////////////////////////////////////////////////////////
@@ -95,6 +105,7 @@ vec3 Li(Ray& primary_ray)
 		}
 		
 		L = mat.f(wi, hit.wo, hit.shading_normal) * Li * std::max(0.0f, dot(wi, hit.shading_normal));
+		
 	}
 	// Return the final outgoing radiance for the primary ray
 	return L;
