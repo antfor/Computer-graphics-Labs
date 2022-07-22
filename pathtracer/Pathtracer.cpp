@@ -82,8 +82,18 @@ vec3 Li(Ray& primary_ray)
 	{
 		const float distance_to_light = length(point_light.position - hit.position);
 		const float falloff_factor = 1.0f / (distance_to_light * distance_to_light);
-		vec3 Li = point_light.intensity_multiplier * point_light.color * falloff_factor;
 		vec3 wi = normalize(point_light.position - hit.position);
+		
+		vec3 Li = vec3(0.0);
+
+		Ray lightRay;
+		lightRay.d = wi;
+		lightRay.o = hit.position + EPSILON * lightRay.d;
+
+		if(!occluded(lightRay)){
+			Li = point_light.intensity_multiplier * point_light.color * falloff_factor;
+		}
+		
 		L = mat.f(wi, hit.wo, hit.shading_normal) * Li * std::max(0.0f, dot(wi, hit.shading_normal));
 	}
 	// Return the final outgoing radiance for the primary ray
