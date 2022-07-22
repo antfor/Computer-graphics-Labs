@@ -115,7 +115,7 @@ void tracePaths(const glm::mat4& V, const glm::mat4& P)
 	int num_rays = 0;
 	vector<vec4> local_image(rendered_image.width * rendered_image.height, vec4(0.0f));
 
-#pragma omp parallel for
+	#pragma omp parallel for
 	for(int y = 0; y < rendered_image.height; y++)
 	{
 		for(int x = 0; x < rendered_image.width; x++)
@@ -127,10 +127,19 @@ void tracePaths(const glm::mat4& V, const glm::mat4& P)
 			// the current pixel on a virtual screen.
 			vec2 screenCoord = vec2(float(x) / float(rendered_image.width),
 			                        float(y) / float(rendered_image.height));
+
+			// Jitter
+			float sampleX = (randf() - 0.5) * 1.0 / rendered_image.width;
+			float sampleY = (randf() - 0.5) * 1.0 / rendered_image.height;
+
+			screenCoord += vec2(sampleX,sampleY);
+
 			// Calculate direction
 			vec4 viewCoord = vec4(screenCoord.x * 2.0f - 1.0f, screenCoord.y * 2.0f - 1.0f, 1.0f, 1.0f);
 			vec3 p = homogenize(inverse(P * V) * viewCoord);
 			primaryRay.d = normalize(p - camera_pos);
+
+
 			// Intersect ray with scene
 			if(intersect(primaryRay))
 			{
