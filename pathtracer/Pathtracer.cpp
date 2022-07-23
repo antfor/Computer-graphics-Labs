@@ -86,7 +86,7 @@ vec3 Li(Ray& primary_ray)
 
 			Ray lightRay;
 			lightRay.d = wi;
-			lightRay.o = hit.position + EPSILON * lightRay.d;
+			lightRay.o = hit.position + EPSILON * hit.shading_normal; //lightRay.d;
 
 			if (!occluded(lightRay)) 
 			{
@@ -106,8 +106,8 @@ vec3 Li(Ray& primary_ray)
 
 		float cosineterm = abs(dot(wi, hit.shading_normal));
 
-		if (pdf == 0)
-			return L;
+		//if (pdf == 0)
+		//	return L;
 
 		path_throughput = path_throughput * (brdf * cosineterm) / pdf;
 
