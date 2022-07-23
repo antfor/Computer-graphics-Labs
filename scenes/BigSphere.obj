@@ -1,5 +1,5 @@
 # Exported by Chalmers Graphics Group
-mtllib bigsphere.mtl
+mtllib BigSphere.mtl
 o Sphere001
 g Sphere001
 usemtl wire_028028177

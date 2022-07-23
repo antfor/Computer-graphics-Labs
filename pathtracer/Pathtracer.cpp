@@ -65,6 +65,84 @@ vec3 Li(Ray& primary_ray)
 	vec3 path_throughput = vec3(1.0);
 	Ray current_ray = primary_ray;
 
+	for (int bounces = 0; bounces <= settings.max_bounces; bounces++) {
+
+		// Get the intersection information from the ray
+		Intersection hit = getIntersection(current_ray);
+
+		// Create a Material tree
+		Diffuse diffuse(hit.material->m_color);
+		BlinnPhong dielectric(hit.material->m_shininess, hit.material->m_fresnel, &diffuse);
+		//BRDF& mat = diffuse;
+		BRDF& mat = dielectric;
+
+		// Direct illumination
+		{
+			const float distance_to_light = length(point_light.position - hit.position);
+			const float falloff_factor = 1.0f / (distance_to_light * distance_to_light);
+			vec3 wi = normalize(point_light.position - hit.position);
+
+			vec3 Li = vec3(0.0);
+
+			Ray lightRay;
+			lightRay.d = wi;
+			lightRay.o = hit.position + EPSILON * lightRay.d;
+
+			if (!occluded(lightRay)) 
+			{
+				Li = point_light.intensity_multiplier * point_light.color * falloff_factor;
+				vec3 direct_illumination = mat.f(wi, hit.wo, hit.shading_normal) * Li * std::max(0.0f, dot(wi, hit.shading_normal));
+				L += path_throughput * direct_illumination;
+			}
+		}
+		// Add emitted radiance from intersection
+		L += path_throughput * hit.material->m_emission;
+
+		// Sample an incoming direction (and the brdf and pdf for that direction)
+		vec3 wi;
+		float pdf;
+
+		vec3 brdf = mat.sample_wi(wi, hit.wo, hit.shading_normal, pdf);
+
+		float cosineterm = abs(dot(wi, hit.shading_normal));
+
+		if (pdf == 0)
+			return L;
+
+		path_throughput = path_throughput * (brdf * cosineterm) / pdf;
+
+		// If pathThroughput is zero there is no need to continue
+		if (path_throughput == vec3(0)) {
+			return L;
+		}
+			
+		// Create next ray on path (existing instance can't be reused)
+		Ray tmp;
+		tmp.d = wi;
+		tmp.o = hit.position;
+		current_ray = tmp;
+
+		// Bias the ray slightly to avoid self-intersection
+		current_ray.o += EPSILON * hit.shading_normal;// hit.shading_normal; // current_ray.d;
+
+	
+		// Intersect the new ray and if there is no intersection just
+		// add environment contribution and finish
+		if (!intersect(current_ray))
+			return L + path_throughput * Lenvironment(current_ray.d);
+		
+		// Otherwise, reiterate for the new intersection
+	//	return L;
+	}
+	return L;
+}
+
+vec3 Li2(Ray& primary_ray)
+{
+	vec3 L = vec3(0.0f);
+	vec3 path_throughput = vec3(1.0);
+	Ray current_ray = primary_ray;
+
 	///////////////////////////////////////////////////////////////////
 	// Get the intersection information from the ray
 	///////////////////////////////////////////////////////////////////
