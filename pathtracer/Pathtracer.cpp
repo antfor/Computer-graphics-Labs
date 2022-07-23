@@ -73,8 +73,12 @@ vec3 Li(Ray& primary_ray)
 		// Create a Material tree
 		Diffuse diffuse(hit.material->m_color);
 		BlinnPhong dielectric(hit.material->m_shininess, hit.material->m_fresnel, &diffuse);
+		BlinnPhongMetal metal(hit.material->m_color, hit.material->m_shininess, hit.material->m_fresnel);
+		LinearBlend metal_blend(hit.material->m_metalness, &metal, &dielectric);
+		LinearBlend reflectivity_blend(hit.material->m_reflectivity, &metal_blend, &diffuse);
 		//BRDF& mat = diffuse;
-		BRDF& mat = dielectric;
+		//BRDF& mat = dielectric;
+		BRDF& mat = reflectivity_blend;
 
 		// Direct illumination
 		{
@@ -106,8 +110,8 @@ vec3 Li(Ray& primary_ray)
 
 		float cosineterm = abs(dot(wi, hit.shading_normal));
 
-		//if (pdf == 0)
-		//	return L;
+		if (pdf == 0)
+			return L;
 
 		path_throughput = path_throughput * (brdf * cosineterm) / pdf;
 

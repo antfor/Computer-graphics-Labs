@@ -111,7 +111,11 @@ vec3 BlinnPhong::sample_wi(vec3& wi, const vec3& wo, const vec3& n, float& p)
 	}
 	else {
 		// Sample a direction for the underlying layer
-		vec3 brdf = refraction_layer->sample_wi(wi,wo,n,p);
+		vec3 brdf = vec3(0);
+		p = 0;
+		if(refraction_layer != NULL)
+			refraction_layer->sample_wi(wi,wo,n,p);
+
 		p = p * 0.5;
 		// We need to attenuate the refracted brdf with (1 - F)
 		vec3 wh = normalize(wo+wi);
@@ -155,8 +159,16 @@ vec3 LinearBlend::f(const vec3& wi, const vec3& wo, const vec3& n)
 
 vec3 LinearBlend::sample_wi(vec3& wi, const vec3& wo, const vec3& n, float& p)
 {
-	p = 0.0f;
-	return vec3(0.0f);
+
+	if (randf() < w) {
+		return vec3(w) * bsdf0->sample_wi(wi,wo,n,p);
+	}
+	else {
+		return vec3(1.0-w) * bsdf1->sample_wi(wi, wo, n, p);
+	}
+//	p = 0.0f;
+//	return vec3(0.0f);
+
 }
 
 ///////////////////////////////////////////////////////////////////////////
